@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Web App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .entries {
+            margin-top: 20px;
+        }
+        .entry {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>My Firebase Web Page</h1>
+    <textarea id="entry-text" placeholder="Write something here..."></textarea>
+    <button onclick="saveEntry()">Save Entry</button>
+    <button onclick="clearEntries()">Clear All Entries</button>
+    <div class="entries" id="entries"></div>
+
+    <!-- Firebase Libraries -->
+    <script type="module">
+        // Import Firebase from CDN
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "your-api-key",
+            authDomain: "your-auth-domain",
+            projectId: "your-project-id",
+            storageBucket: "your-storage-bucket",
+            messagingSenderId: "your-messaging-sender-id",
+            appId: "your-app-id"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Save an entry to the database
+        function saveEntry() {
+            const entryText = document.getElementById('entry-text').value;
+            if (entryText.trim() === "") {
+                alert("Please enter something before saving.");
+                return;
+            }
+            const entry = {
+                text: entryText,
+                time: new Date().toLocaleString()
+            };
+            const entriesRef = ref(db, 'entries');
+            push(entriesRef, entry);
+            document.getElementById('entry-text').value = '';
+            fetchEntries();
+        }
+
+        // Fetch and display entries
+        function fetchEntries() {
+            const entriesRef = ref(db, 'entries');
+            const entriesDiv = document.getElementById('entries');
+            onValue(entriesRef, (snapshot) => {
+                entriesDiv.innerHTML = '';
+                const data = snapshot.val();
+                if (data) {
+                    Object.values(data).forEach(entry => {
+                        const entryDiv = document.createElement('div');
+                        entryDiv.className = 'entry';
+                        entryDiv.innerHTML = `<strong>${entry.time}</strong><p>${entry.text}</p>`;
+                        entriesDiv.appendChild(entryDiv);
+                    });
+                }
+            });
+        }
+
+        // Clear all entries
+        function clearEntries() {
+            if (confirm('Are you sure you want to delete all entries?')) {
+                const entriesRef = ref(db, 'entries');
+                remove(entriesRef);
+                fetchEntries();
+            }
+        }
+
+        // Load entries on page load
+        window.onload = fetchEntries;
+    </script>
+</body>
+</html>
+
